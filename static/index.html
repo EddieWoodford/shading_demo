@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PV String Shading</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body>
+<main>
+  <header>
+    <div>
+      <h1>PV string shading demo</h1>
+      <p class="sub" id="subtitle">10 panels in series · an IV tracer sweeps the string · a sensor on one panel records its own V and I</p>
+    </div>
+    <div class="sensor" aria-live="polite">
+      <div class="sensor-label" id="sensor-label">Sensor on panel 1</div>
+      <div class="sensor-values"><span id="sensor-v">–</span><span id="sensor-i">–</span></div>
+      <div class="sensor-mode" id="sensor-mode">Connecting…</div>
+    </div>
+  </header>
+
+  <section class="card string-card">
+    <div class="string-row" id="string-row">
+      <div class="terminal">−</div>
+      <!-- panels are inserted here by app.js -->
+      <div class="terminal">+</div>
+    </div>
+    <div class="return-wire"><span>IV tracer / inverter</span></div>
+  </section>
+
+  <section class="controls">
+    <div class="card editor" id="editor">
+      <div class="editor-head">
+        <h2 id="editor-title">Panel 5</h2>
+        <button type="button" class="ghost" id="panel-reset">Clear panel</button>
+      </div>
+      <label class="field">
+        <span>Shade <output id="shade-out">0%</output></span>
+        <input type="range" id="shade" min="0" max="100" step="1" value="0">
+      </label>
+      <div class="field">
+        <span>Shade covers</span>
+        <div class="segmented" role="radiogroup" id="pattern">
+          <button type="button" data-pattern="panel" role="radio">Whole panel</button>
+          <button type="button" data-pattern="substring" role="radio">One substring</button>
+          <button type="button" data-pattern="cell" role="radio">One cell</button>
+        </div>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="disconnected">
+        <span>Unplugged (string opens)</span>
+      </label>
+      <p class="hint">Click any panel in the string to edit it.</p>
+    </div>
+
+    <div class="card global">
+      <h2>Setup</h2>
+      <label class="field inline">
+        <span>Sensor on panel</span>
+        <select id="measured"></select>
+      </label>
+      <label class="switch">
+        <input type="checkbox" id="bypass" checked>
+        <span>Bypass diodes fitted (3 per panel)</span>
+      </label>
+      <div class="field">
+        <span>Scenarios</span>
+        <div class="presets" id="presets"></div>
+      </div>
+      <div class="buttons">
+        <button type="button" class="ghost" id="pause">Pause sweep</button>
+        <button type="button" class="ghost" id="csv">Export sweep CSV</button>
+      </div>
+    </div>
+  </section>
+
+  <p class="story card" id="story" aria-live="polite"></p>
+
+  <section class="legend" aria-label="Chart legend">
+    <span><i class="key key-live"></i>Measured now</span>
+    <span><i class="key key-base"></i>No faults (reference)</span>
+    <span><i class="key key-op"></i>Operating point (inverter at max power)</span>
+    <span><i class="key key-op-base"></i>Operating point with no faults</span>
+  </section>
+
+  <section class="charts">
+    <div class="card chart-main">
+      <div class="chart-head">
+        <h2 id="panel-chart-title">Measured panel I–V</h2>
+        <p>Panel voltage vs string current, recorded by the sensor during the sweep</p>
+      </div>
+      <div class="canvas-wrap tall"><canvas id="panel-chart"></canvas></div>
+      <div class="readouts">
+        <div class="readout"><span class="r-label">Panel voltage</span><span class="r-value" id="r-pv">–</span><span class="r-delta" id="r-pv-d"></span></div>
+        <div class="readout"><span class="r-label">Panel current</span><span class="r-value" id="r-pi">–</span><span class="r-delta" id="r-pi-d"></span></div>
+        <div class="readout"><span class="r-label">Panel power</span><span class="r-value" id="r-pp">–</span><span class="r-delta" id="r-pp-d"></span></div>
+      </div>
+    </div>
+    <div class="chart-side">
+      <div class="card">
+        <div class="chart-head">
+          <h2>String I–V</h2>
+          <p>What the tracer sees at the string terminals</p>
+        </div>
+        <div class="canvas-wrap"><canvas id="string-iv"></canvas><div class="overlay" id="iv-overlay">String open: no current flows</div></div>
+      </div>
+      <div class="card">
+        <div class="chart-head">
+          <h2>String P–V</h2>
+          <p>String power <span id="r-sp"></span></p>
+        </div>
+        <div class="canvas-wrap"><canvas id="string-pv"></canvas><div class="overlay" id="pv-overlay">String open: no power</div></div>
+      </div>
+    </div>
+  </section>
+
+  <footer>Simulated with <a href="https://pvlib-python.readthedocs.io/">pvlib</a> (CEC single-diode module parameters, Bishop reverse-bias model) · <span id="module-name"></span></footer>
+</main>
+<script src="app.js"></script>
+</body>
+</html>
