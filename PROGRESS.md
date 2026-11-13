@@ -26,8 +26,8 @@ panels and see the measured IV curve change. Python backend using a public PV li
   current/voltage plateau while a producing shaded panel's voltage builds.
 - Tests: `pytest` (24) – physics sanity (datasheet match, bypass, open circuit, no-bypass
   cap, operating-point shift, time-series slope/plateau) + API.
-- Run (dev): `.venv/Scripts/python app.py --debug` (also `.claude/launch.json` "shading-demo",
-  port 5000). `--open` opens the browser (used by start.bat).
+- Run (dev): `.venv/Scripts/python app.py` (also `.claude/launch.json` "shading-demo", port
+  5000). `--open` opens the browser (used by start.bat); `--debug` enables Flask's reloader.
 - Distribution: `start.bat` (Windows, CRLF via `.gitattributes`). First run downloads uv's
   release zip from GitHub into `.tools/` (no installer script, no PATH change), sets
   UV_CACHE_DIR / UV_PYTHON_INSTALL_DIR inside `.tools`, then `uv run --frozen --no-dev
@@ -46,6 +46,9 @@ panels and see the measured IV curve change. Python backend using a public PV li
 - Bypass-diode lights on tiles assume shaded substrings are the first ones (true for all patterns).
 - `.python-version` = 3.14: unpinned, uv picked Python 3.15 where h5py (pvlib dep) has no
   wheel and the source build failed.
+- launch.json runs without `--debug`: on Windows the reloader's child process survives
+  preview_stop and keeps answering on port 5000 (Windows lets two Flask servers share the port).
+  Before testing anything on 5000, check `Get-NetTCPConnection -LocalPort 5000`.
 - Don't set UV_COMPILE_BYTECODE in start.bat: uv recompiles all ~3200 files on every run (+3 s).
 - Claude's shell has PYTHONDONTWRITEBYTECODE=1 (skews import timings); Git Bash `sed -i`
   strips CRLF, so edit start.bat with a CRLF-aware tool. Dev `.venv` has uv pip-installed

@@ -4,7 +4,7 @@
     {
       "name": "shading-demo",
       "runtimeExecutable": ".venv/Scripts/python.exe",
-      "runtimeArgs": ["app.py", "--debug"],
+      "runtimeArgs": ["app.py"],
       "port": 5000
     }
   ]
