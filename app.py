@@ -1,6 +1,7 @@
 """Flask server for the PV string shading demo.
 
-Run:  python app.py   then open http://127.0.0.1:5000
+Run:  python app.py [--open] [--debug]   then open http://127.0.0.1:5000
+      (--open launches the browser; Windows users can just double-click start.bat)
 """
 
 from flask import Flask, jsonify, request
@@ -48,4 +49,10 @@ def _panel(p):
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    import sys
+    import threading
+    import webbrowser
+
+    if "--open" in sys.argv:  # used by start.bat
+        threading.Timer(1.5, webbrowser.open, ["http://127.0.0.1:5000"]).start()
+    app.run(debug="--debug" in sys.argv)
