@@ -19,8 +19,13 @@ panels and see the measured IV curve change. Python backend using a public PV li
 - `static/` – vanilla JS + Chart.js 4.4.1 (cdnjs). Clickable string diagram, panel
   editor, presets, animated sweep loop (1.4 s sweep + 1.3 s hold at MPP), live sensor
   readout, narrative text, CSV export, light/dark via CSS vars.
-- Tests: `pytest` (19) – physics sanity (datasheet match, bypass, open circuit, no-bypass
-  cap, operating-point shift) + API.
+- Time series: sweep is a constant string-voltage ramp (`RAMP_RATE` = 383 V / `SWEEP_SECONDS`
+  1.4 s), so `sweep.t = v_string / RAMP_RATE` (open circuit: t uniform over 1.4 s). UI card
+  "Sensor on panel N during the sweep" = stacked V(t) and I(t) charts; the animation replays
+  the sweep in real time using `t`. Signatures: early dV/dt = ramp ÷ active panels;
+  current/voltage plateau while a producing shaded panel's voltage builds.
+- Tests: `pytest` (24) – physics sanity (datasheet match, bypass, open circuit, no-bypass
+  cap, operating-point shift, time-series slope/plateau) + API.
 - Run: `.venv/Scripts/python app.py` (also `.claude/launch.json` "shading-demo", port 5000).
 
 ## Decisions / gotchas

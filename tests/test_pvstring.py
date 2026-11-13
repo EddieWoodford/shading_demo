@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from pvstring import N_PANELS, PanelState, module_info, simulate
+from pvstring import N_PANELS, RAMP_RATE, SWEEP_SECONDS, PanelState, module_info, simulate
 
 MOD = module_info()
 
@@ -81,6 +81,35 @@ def test_measured_trace_lies_on_panels_own_curve():
     order = np.argsort(own["i"])
     expected = np.interp(s["i"], np.array(own["i"])[order], np.array(own["v"])[order])
     assert np.allclose(s["v_panel"], expected, atol=0.1)
+
+
+def test_sweep_time_follows_constant_voltage_ramp():
+    s = run()["sweep"]
+    assert s["t"][0] == 0 and s["t"][-1] == pytest.approx(SWEEP_SECONDS, rel=0.01)
+    assert np.all(np.diff(s["t"]) > 0)
+    open_ = run({5: PanelState(disconnected=True)})["sweep"]
+    assert open_["t"][-1] == pytest.approx(SWEEP_SECONDS)
+
+
+def early_slope(sweep):
+    """dV/dt of the measured panel over the first half of the sweep (string near Isc)."""
+    half = len(sweep["t"]) // 2
+    return np.polyfit(sweep["t"][:half], sweep["v_panel"][:half], 1)[0]
+
+
+@pytest.mark.parametrize("faults, active", [
+    ({}, 10),
+    ({4: PanelState(shade=1.0)}, 9),
+    ({k: PanelState(shade=0.5) for k in range(5, 10)}, 5),
+])
+def test_bypassed_panels_steepen_measured_voltage_ramp(faults, active):
+    assert early_slope(run(faults)["sweep"]) == pytest.approx(RAMP_RATE / active, rel=0.02)
+
+
+def test_producing_shaded_panels_make_current_plateau():
+    s = run({k: PanelState(shade=0.5) for k in range(5, 10)})["sweep"]
+    on_plateau = np.abs(np.array(s["i"]) - 0.5 * MOD["isc"]) < 0.1
+    assert on_plateau.sum() * (s["t"][1] - s["t"][0]) > 0.3  # seconds
 
 
 def test_measured_panel_can_be_any_panel():

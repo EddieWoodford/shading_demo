@@ -3,8 +3,7 @@
 const N = 10;
 const CELLS = 60;
 const SHADED_CELL = 18; // row 4, column 1: inside substring 1
-const SWEEP_MS = 1400; // one tracer sweep, short circuit -> open circuit
-const HOLD_MS = 1300; // then the inverter sits at max power before the next sweep
+const HOLD_MS = 1300; // after each sweep the inverter sits at max power before the next one
 
 const state = {
   panels: Array.from({ length: N }, () => ({ shade: 0, pattern: "panel", disconnected: false })),
@@ -222,9 +221,9 @@ function apply(d) {
 const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 const charts = {};
 
-function makeChart(id, xUnit, yUnit, yName) {
-  const tooltipLabel = ctx => `${ctx.dataset.label}: ${ctx.parsed.x.toFixed(1)} ${xUnit}, ` +
-    `${ctx.parsed.y.toFixed(yUnit === "A" ? 2 : 0)} ${yUnit}`;
+function makeChart(id, [xName, xUnit, xDigits], [yName, yUnit, yDigits]) {
+  const tooltipLabel = ctx => `${ctx.dataset.label}: ${ctx.parsed.x.toFixed(xDigits)} ${xUnit}, ` +
+    `${ctx.parsed.y.toFixed(yDigits)} ${yUnit}`;
   return new Chart(document.getElementById(id), {
     type: "scatter",
     data: {
@@ -243,7 +242,7 @@ function makeChart(id, xUnit, yUnit, yName) {
       parsing: false,
       interaction: { mode: "nearest", intersect: false },
       scales: {
-        x: { type: "linear", title: { display: true, text: `Voltage (${xUnit})` }, ticks: { includeBounds: false } },
+        x: { type: "linear", title: { display: true, text: `${xName} (${xUnit})` }, ticks: { includeBounds: false } },
         y: { type: "linear", title: { display: true, text: `${yName} (${yUnit})` }, ticks: { includeBounds: false } },
       },
       plugins: { legend: { display: false }, tooltip: { callbacks: { label: tooltipLabel } } },
@@ -318,6 +317,21 @@ function drawStatic() {
   Object.assign(pv.options.scales.x, { min: 0, max: vmax });
   Object.assign(pv.options.scales.y, { min: 0, max: niceMax(b.mpp.p * 1.1) });
 
+  // Sensor readings against sweep time (two charts, one shared time axis).
+  const bs = b.sweep, s = d.sweep;
+  charts.tv.data.datasets[0].data = pts(bs.t, bs.v_panel);
+  charts.ti.data.datasets[0].data = pts(bs.t, bs.i);
+  const tmax = niceMax(Math.max(bs.t.at(-1), s.t.at(-1)));
+  const vmin = Math.min(...s.v_panel);
+  Object.assign(charts.tv.options.scales.x, { min: 0, max: tmax });
+  Object.assign(charts.ti.options.scales.x, { min: 0, max: tmax });
+  Object.assign(charts.tv.options.scales.y, {
+    min: vmin < -0.5 ? -niceMax(-vmin * 1.05) : 0,
+    max: niceMax(Math.max(...bs.v_panel, ...s.v_panel) * 1.08),
+  });
+  Object.assign(charts.ti.options.scales.y, { min: 0, max: niceMax(Math.max(...bs.i, ...s.i) * 1.1) });
+  $("#ts-title").textContent = `Sensor on panel ${d.measured + 1} during the sweep`;
+
   $("#iv-overlay").classList.toggle("show", d.open_circuit);
   $("#pv-overlay").classList.toggle("show", d.open_circuit);
 
@@ -355,6 +369,10 @@ function drawTrace(k) {
   const p = power(s);
   charts.pv.data.datasets[1].data = open ? [] : pts(s.v_string.slice(0, k), p.slice(0, k));
   charts.pv.data.datasets[2].data = sweeping && !open ? [{ x: s.v_string[j], y: p[j] }] : [];
+  charts.tv.data.datasets[1].data = pts(s.t.slice(0, k), s.v_panel.slice(0, k));
+  charts.tv.data.datasets[2].data = sweeping ? [{ x: s.t[j], y: s.v_panel[j] }] : [];
+  charts.ti.data.datasets[1].data = pts(s.t.slice(0, k), s.i.slice(0, k));
+  charts.ti.data.datasets[2].data = sweeping ? [{ x: s.t[j], y: s.i[j] }] : [];
   for (const ch of Object.values(charts)) ch.update("none");
 
   // The sensor reads the sweep while it runs, then the inverter's operating point.
@@ -367,13 +385,18 @@ function drawTrace(k) {
 
 function frame(now) {
   if (data) {
-    const n = data.sweep.i.length;
+    const t = data.sweep.t;
+    const n = t.length;
     let k = n;
     if (!paused) {
-      const t = now - sweepStart;
-      if (t >= SWEEP_MS + HOLD_MS) sweepStart = now;
-      k = t < SWEEP_MS ? Math.max(1, Math.ceil((n * t) / SWEEP_MS)) : n;
-      if (t >= SWEEP_MS + HOLD_MS) k = 1;
+      // Replay the sweep in real time: show every sample taken so far, then hold.
+      let elapsed = (now - sweepStart) / 1000;
+      if (elapsed >= data.baseline.sweep.t.at(-1) + HOLD_MS / 1000) {
+        sweepStart = now;
+        elapsed = 0;
+      }
+      const next = t.findIndex(x => x > elapsed);
+      k = next === -1 ? n : Math.max(1, next);
     }
     if (k !== shownK) {
       shownK = k;
@@ -442,9 +465,14 @@ function exportCsv() {
 async function init() {
   buildString();
   bindControls();
-  charts.panel = makeChart("panel-chart", "V", "A", "Current");
-  charts.iv = makeChart("string-iv", "V", "A", "Current");
-  charts.pv = makeChart("string-pv", "V", "W", "Power");
+  const volts = ["Voltage", "V", 1], amps = ["Current", "A", 2], time = ["Time into sweep", "s", 2];
+  charts.panel = makeChart("panel-chart", volts, amps);
+  charts.iv = makeChart("string-iv", volts, amps);
+  charts.pv = makeChart("string-pv", volts, ["Power", "W", 0]);
+  charts.tv = makeChart("ts-v", time, ["Panel voltage", "V", 1]);
+  charts.ti = makeChart("ts-i", time, amps);
+  charts.tv.options.scales.x.title.display = false;
+  for (const ch of [charts.tv, charts.ti]) ch.options.scales.y.afterFit = scale => { scale.width = 64; };
   applyTheme();
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", applyTheme);
   select(state.selected);

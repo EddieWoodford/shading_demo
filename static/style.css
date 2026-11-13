@@ -147,6 +147,9 @@ button.ghost:hover, .presets button:hover { border-color: var(--live); }
 .chart-head p { margin: 2px 0 6px; font-size: 12px; }
 .canvas-wrap { position: relative; height: 190px; }
 .canvas-wrap.tall { height: 360px; }
+.canvas-wrap.short { height: 170px; }
+.timeseries { margin-top: 14px; }
+.timeseries .chart-head p { max-width: 900px; }
 .overlay {
   position: absolute; inset: 0; display: none; align-items: center; justify-content: center;
   color: var(--critical); font-weight: 600; pointer-events: none;

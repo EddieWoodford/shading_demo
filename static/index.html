@@ -116,6 +116,15 @@
     </div>
   </section>
 
+  <section class="card timeseries">
+    <div class="chart-head">
+      <h2 id="ts-title">Sensor readings during the sweep</h2>
+      <p>The tracer ramps the string voltage at a constant rate. Near short circuit the measured panel takes an equal share of that ramp with every panel that is not bypassed, so each bypassed panel makes its voltage climb faster. A shaded panel that is still producing shows up as a plateau: the current stalls at that panel's level while its voltage builds.</p>
+    </div>
+    <div class="canvas-wrap short"><canvas id="ts-v"></canvas></div>
+    <div class="canvas-wrap short"><canvas id="ts-i"></canvas></div>
+  </section>
+
   <footer>Simulated with <a href="https://pvlib-python.readthedocs.io/">pvlib</a> (CEC single-diode module parameters, Bishop reverse-bias model) · <span id="module-name"></span></footer>
 </main>
 <script src="app.js"></script>

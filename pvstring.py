@@ -42,9 +42,13 @@ MIN_IRRADIANCE = 1.0
 
 N_GRID = 2000
 N_SWEEP = 150
+SWEEP_SECONDS = 1.4  # fault-free sweep duration; similar to an inverter's global MPP scan
 
 _module = pvsystem.retrieve_sam("CECMod")[MODULE_NAME]
 assert int(_module["N_s"]) == CELLS
+
+# The tracer ramps string voltage at a constant rate, so sweep time is proportional to string voltage.
+RAMP_RATE = N_PANELS * float(_module["V_oc_ref"]) / SWEEP_SECONDS  # V/s
 
 
 @dataclass
@@ -172,7 +176,10 @@ def _sweep_string(panels, measured, bypass, irradiance, temp_cell, n_sweep):
         zeros = np.zeros(n_sweep)
         return {
             "open_circuit": True,
-            "sweep": {"v_string": zeros, "i": zeros, "v_panel": np.full(n_sweep, voc_meas)},
+            "sweep": {
+                "t": np.linspace(0.0, SWEEP_SECONDS, n_sweep),  # the ramp runs, nothing flows
+                "v_string": zeros, "i": zeros, "v_panel": np.full(n_sweep, voc_meas),
+            },
             "panel_curve": own,
             "mpp": {"v_string": 0.0, "i": 0.0, "p": 0.0, "v_panel": voc_meas, "p_panel": 0.0},
             "panels": panel_states(0.0),
@@ -195,7 +202,7 @@ def _sweep_string(panels, measured, bypass, irradiance, temp_cell, n_sweep):
     vm_mpp = float(vmeas[k])
     return {
         "open_circuit": False,
-        "sweep": {"v_string": vs, "i": i_sw, "v_panel": vm_sw},
+        "sweep": {"t": vs / RAMP_RATE, "v_string": vs, "i": i_sw, "v_panel": vm_sw},
         "panel_curve": own,
         "mpp": {"v_string": v_mpp, "i": i_mpp, "p": i_mpp * v_mpp, "v_panel": vm_mpp, "p_panel": i_mpp * vm_mpp},
         "panels": panel_states(i_mpp),

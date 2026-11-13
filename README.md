@@ -40,6 +40,20 @@ Open http://127.0.0.1:5000. The page loads Chart.js from cdnjs, so it needs inte
 | Panel unplugged | Collapses to one point: Voc, 0 A | No current |
 | Shade, bypass diodes off | Trace stops at the shaded panel's current | Current capped |
 
+## The time series
+
+The tracer ramps the string voltage at a constant rate (a fault-free sweep takes 1.4 s),
+and the bottom card plots the sensor's V and I against time. Bypass diodes hide a
+shaded panel from the measured panel's V–I curve, but not from the time series:
+
+- **Bypassed panels:** while the string is near short circuit, the measured panel shares
+  the ramp with every panel that isn't bypassed. So its voltage climbs at
+  ramp ÷ (active panels): 1/10 normally, 1/9 with one panel bypassed, 1/5 with half bypassed.
+- **Shaded but still producing:** a plateau. Current stalls at the shaded panel's level
+  and the measured panel's voltage stays flat while the shaded panel's voltage builds.
+- **No bypass diodes:** the measured panel sits near Voc at low current for the whole sweep.
+- **Unplugged:** flat lines, Voc and 0 A.
+
 ## Test
 
 ```bash
