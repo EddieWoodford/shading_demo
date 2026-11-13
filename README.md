@@ -9,15 +9,29 @@ The backend is Python, using [pvlib](https://pvlib-python.readthedocs.io/):
 CEC single-diode parameters for a real 60-cell module (Canadian Solar CS6K-275M),
 evaluated per cell with Bishop's reverse-bias breakdown model; 3 bypass diodes per panel.
 
-## Run
+## Run it on Windows
+
+1. Clone this repo, or on GitHub choose **Code → Download ZIP** and unzip it.
+2. Double-click **`start.bat`**.
+
+The first run downloads [uv](https://docs.astral.sh/uv/) into a `.tools` folder. uv then
+installs Python 3.14 (only if 3.14 isn't installed already) and the pinned packages:
+about 100 MB, a minute or two. Later runs skip the downloads. Your browser opens the demo
+by itself; close the black window to stop it. Everything stays inside the folder, so
+deleting the folder removes it all.
+
+If Windows warns that the file came from the internet, choose **Run** (or
+**More info → Run anyway**). The page loads Chart.js from cdnjs, so it needs internet.
+
+## Run it on macOS / Linux
+
+[Install uv](https://docs.astral.sh/uv/getting-started/installation/), then in the folder:
 
 ```bash
-python -m venv .venv
-.venv/Scripts/pip install -r requirements.txt   # macOS/Linux: .venv/bin/pip
-.venv/Scripts/python app.py
+uv run app.py --open
 ```
 
-Open http://127.0.0.1:5000. The page loads Chart.js from cdnjs, so it needs internet.
+Without uv: `pip install pvlib flask`, then `python app.py --open`.
 
 ## Use
 
@@ -57,5 +71,5 @@ shaded panel from the measured panel's V–I curve, but not from the time series
 ## Test
 
 ```bash
-.venv/Scripts/python -m pytest
+uv run pytest
 ```
